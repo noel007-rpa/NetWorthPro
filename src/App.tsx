@@ -7,7 +7,7 @@ import Income from './pages/Income';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/NetWorthPro/">
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
