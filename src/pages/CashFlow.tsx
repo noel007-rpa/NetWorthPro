@@ -45,6 +45,7 @@ export default function CashFlow() {
   const [panelType, setPanelType] = useState<'allocation' | 'subcategory'>('allocation');
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [editingAllocation, setEditingAllocation] = useState<Allocation | null>(null);
+  const [selectedCategoryForSubcategory, setSelectedCategoryForSubcategory] = useState<string>('');
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: number; name: string; type?: 'income' | 'allocation' | 'subcategory'; parentId?: number } | null>(null);
   
   const [incomeData, setIncomeData] = useState([
@@ -213,6 +214,71 @@ export default function CashFlow() {
   };
 
   const handleSaveAllocation = (newAllocation: any) => {
+    // Prevent adding duplicate categories when creating new allocation
+    if (panelMode === 'add' && panelType === 'allocation') {
+      const isDuplicate = allocationData.some(a => 
+        a.category.toLowerCase() === newAllocation.category.toLowerCase()
+      );
+      if (isDuplicate) {
+        alert(`Category "${newAllocation.category}" already exists. Please choose a different category.`);
+        return;
+      }
+    }
+
+    // Prevent adding duplicate subcategories when adding to existing category
+    if (panelType === 'subcategory' && editingAllocation) {
+      const isDuplicate = editingAllocation.subcategories.some(sub => 
+        sub.name.toLowerCase() === newAllocation.name.toLowerCase() &&
+        (!editingAllocation.editingSubcategoryId || sub.id !== editingAllocation.editingSubcategoryId)
+      );
+      if (isDuplicate) {
+        alert(`Subcategory "${newAllocation.name}" already exists in "${editingAllocation.category}". Please choose a different name.`);
+        return;
+      }
+    }
+
+    // Handle global subcategory addition (when no editingAllocation is set)
+    if (panelType === 'subcategory' && !editingAllocation) {
+      const categoryName = newAllocation.category;
+      const targetAllocation = allocationData.find(a => a.category === categoryName);
+      
+      if (!targetAllocation) {
+        alert(`Please select a valid category.`);
+        return;
+      }
+
+      // Check for duplicate subcategory in target allocation
+      const isDuplicate = targetAllocation.subcategories.some(sub => 
+        sub.name.toLowerCase() === newAllocation.name.toLowerCase()
+      );
+      if (isDuplicate) {
+        alert(`Subcategory "${newAllocation.name}" already exists in "${categoryName}". Please choose a different name.`);
+        return;
+      }
+
+      // Add subcategory to the target allocation by ID
+      setAllocationData(allocationData.map(a =>
+        a.id === targetAllocation.id
+          ? {
+              ...a,
+              subcategories: [
+                ...a.subcategories,
+                {
+                  id: Math.max(...(a.subcategories?.map(s => parseFloat(s.id?.toString()) || 0) || [0]), 0) + 0.1,
+                  name: newAllocation.name,
+                  amount: newAllocation.amount,
+                  status: newAllocation.status,
+                },
+              ],
+            }
+          : a
+      ));
+      setAllocationPanel(false);
+      setPanelMode('add');
+      setEditingAllocation(null);
+      return;
+    }
+
     if (panelType === 'subcategory' && editingAllocation) {
       // Add or update subcategory
       setAllocationData(allocationData.map(a =>
@@ -595,27 +661,51 @@ export default function CashFlow() {
               </h2>
             </button>
             {allocationExpanded && (
-              <button
-                onClick={() => {
-                  setEditingAllocation(null);
-                  setPanelMode('add');
-                  setPanelType('allocation');
-                  setAllocationPanel(true);
-                }}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'transparent',
-                  color: '#FFD700',
-                  border: '1px solid #FFD700',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '0.9rem',
-                  fontFamily: 'inherit',
-                }}
-              >
-                + Add Allocation
-              </button>
+              <div style={{ display: 'flex', gap: '0.8rem' }}>
+                <button
+                  onClick={() => {
+                    setEditingAllocation(null);
+                    setPanelMode('add');
+                    setPanelType('allocation');
+                    setAllocationPanel(true);
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'transparent',
+                    color: '#FFD700',
+                    border: '1px solid #FFD700',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '0.9rem',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  + Add Allocation
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedCategoryForSubcategory('');
+                    setEditingAllocation(null);
+                    setPanelMode('add');
+                    setPanelType('subcategory');
+                    setAllocationPanel(true);
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'transparent',
+                    color: '#00AA00',
+                    border: '1px solid #00AA00',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '0.9rem',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  + Add Subcategory
+                </button>
+              </div>
             )}
           </div>
 
@@ -728,27 +818,6 @@ export default function CashFlow() {
                           >
                             Delete
                           </button>
-                          <button
-                            onClick={() => {
-                              setEditingAllocation(allocation);
-                              setPanelMode('add');
-                              setPanelType('subcategory');
-                              setAllocationPanel(true);
-                            }}
-                            style={{
-                              padding: '0.4rem 0.8rem',
-                              backgroundColor: '#00AA00',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '0.75rem',
-                              fontWeight: '600',
-                              marginLeft: '0.5rem',
-                            }}
-                          >
-                            + Sub
-                          </button>
                         </td>
                       </tr>
                       {expandedCategories[allocation.id] && allocation.subcategories && allocation.subcategories.map((sub) => (
@@ -829,11 +898,18 @@ export default function CashFlow() {
 
         <AllocationSidePanel
           open={allocationPanel}
-          onClose={() => setAllocationPanel(false)}
+          onClose={() => {
+            setAllocationPanel(false);
+            setSelectedCategoryForSubcategory('');
+          }}
           onSave={handleSaveAllocation}
           mode={panelMode}
           panelType={panelType}
           initialData={editingAllocation}
+          existingCategories={allocationData.map(a => a.category)}
+          existingSubcategories={editingAllocation?.subcategories?.map(s => s.name) || []}
+          selectedCategory={selectedCategoryForSubcategory}
+          allAllocations={allocationData}
         />
 
         {/* Delete Confirmation Modal */}

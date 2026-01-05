@@ -275,10 +275,16 @@ export default function Dashboard() {
           </div>
         </div>
         <h1>Net Worth</h1>
-        <div style={{ marginTop: '2rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-          <NetWorthCard value={convertValue(netWorthValue)} currencySymbol={getCurrencySymbol()} />
-          <AssetsCard value={convertValue(assetsValue)} currencySymbol={getCurrencySymbol()} />
-          <LiabilitiesCard value={convertValue(liabilitiesValue)} currencySymbol={getCurrencySymbol()} />
+        <div style={{ marginTop: '2rem', display: 'flex', gap: '25px', justifyContent: 'space-between', alignItems: 'stretch' }}>
+          <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
+            <NetWorthCard value={convertValue(netWorthValue)} currencySymbol={getCurrencySymbol()} />
+          </div>
+          <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
+            <AssetsCard value={convertValue(assetsValue)} currencySymbol={getCurrencySymbol()} />
+          </div>
+          <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
+            <LiabilitiesCard value={convertValue(liabilitiesValue)} currencySymbol={getCurrencySymbol()} />
+          </div>
         </div>
 
         {/* Assets Table */}

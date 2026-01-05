@@ -287,26 +287,6 @@ export default function Login() {
                 Log In
               </button>
 
-              <button
-                type="button"
-                onClick={() => navigate('/income')}
-                style={{
-                  background: '#fff',
-                  color: '#6c63ff',
-                  border: '2px solid #6c63ff',
-                  borderRadius: 8,
-                  padding: '0.7rem 0',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  marginBottom: '0.5rem',
-                  cursor: 'pointer',
-                  width: '100%',
-                  transition: 'background 0.2s',
-                }}
-              >
-                Add income
-              </button>
-
               <div
                 className="login-or"
                 style={{

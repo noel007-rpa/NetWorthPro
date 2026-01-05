@@ -7,6 +7,10 @@ interface AllocationSidePanelProps {
   mode: 'add' | 'edit';
   panelType: 'allocation' | 'subcategory';
   initialData?: any;
+  existingCategories?: string[];
+  existingSubcategories?: string[];
+  selectedCategory?: string;
+  allAllocations?: any[];
 }
 
 export default function AllocationSidePanel({
@@ -16,6 +20,10 @@ export default function AllocationSidePanel({
   mode,
   panelType,
   initialData,
+  existingCategories = [],
+  existingSubcategories = [],
+  selectedCategory = '',
+  allAllocations = [],
 }: AllocationSidePanelProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -26,8 +34,9 @@ export default function AllocationSidePanel({
     endDate: '',
     status: 'Active',
   });
+  const [error, setError] = useState('');
 
-  const categories = ['Living', 'Savings', 'Investments', 'Debt', 'Protection', 'Support / Giving', 'Taxes'];
+  const categories = ['Living', 'Savings', 'Investments', 'Debt', 'Protection', 'Support / Giving', 'Taxes', 'Other'];
   const frequencies = ['Weekly', 'Bi-weekly', 'Monthly', 'Quarterly', 'Annual', 'One-time'];
 
   useEffect(() => {
@@ -50,9 +59,10 @@ export default function AllocationSidePanel({
           });
         }
       } else {
+        // Adding new subcategory - use selectedCategory if provided, else initialData.category
         setFormData({
           name: '',
-          category: initialData?.category || '',
+          category: selectedCategory || initialData?.category || '',
           amount: '0',
           frequency: 'Monthly',
           startDate: new Date().toISOString().split('T')[0],
@@ -83,30 +93,88 @@ export default function AllocationSidePanel({
         });
       }
     }
-  }, [mode, initialData, open, panelType]);
+  }, [mode, initialData, open, panelType, selectedCategory]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(''); // Clear error when user changes input
+    
+    // Validate immediately on category/name change
+    if (name === 'category' || name === 'name') {
+      setTimeout(() => {
+        setFormData((current) => {
+          if (panelType === 'subcategory') {
+            const subcategoryName = current.name.trim();
+            if (existingSubcategories.some(sub => sub.toLowerCase() === subcategoryName.toLowerCase())) {
+              if (!(mode === 'edit' && initialData?.editingSubcategoryId)) {
+                setError(`Subcategory "${subcategoryName}" already exists in this category.`);
+              }
+            }
+          } else {
+            const categoryName = current.category.trim();
+            if (existingCategories.some(cat => cat.toLowerCase() === categoryName.toLowerCase())) {
+              if (!(mode === 'edit' && initialData?.category?.toLowerCase() === categoryName.toLowerCase())) {
+                setError(`Category "${categoryName}" already exists.`);
+              }
+            }
+          }
+          return current;
+        });
+      }, 0);
+    }
+  };
+
+  const checkDuplicates = () => {
+    if (panelType === 'subcategory') {
+      const subcategoryName = formData.name.trim();
+      // Check if subcategory name already exists (case-insensitive)
+      if (existingSubcategories.some(sub => sub.toLowerCase() === subcategoryName.toLowerCase())) {
+        // Allow if editing and name matches current subcategory
+        if (!(mode === 'edit' && initialData?.editingSubcategoryId)) {
+          setError(`Subcategory "${subcategoryName}" already exists in this category.`);
+          return false;
+        }
+      }
+    } else {
+      const categoryName = formData.category.trim();
+      // Check if category already exists (case-insensitive)
+      if (existingCategories.some(cat => cat.toLowerCase() === categoryName.toLowerCase())) {
+        // Allow if editing and category matches current allocation
+        if (!(mode === 'edit' && initialData?.category?.toLowerCase() === categoryName.toLowerCase())) {
+          setError(`Category "${categoryName}" already exists.`);
+          return false;
+        }
+      }
+    }
+    return true;
   };
 
   const isFormValid = () => {
     if (panelType === 'subcategory') {
       return formData.name.trim() !== '' && 
-             parseFloat(formData.amount) > 0;
+             parseFloat(formData.amount) > 0 &&
+             !error;
     } else {
       return formData.category.trim() !== '' && 
              parseFloat(formData.amount) > 0 && 
              formData.startDate !== '' &&
-             formData.frequency !== '';
+             formData.frequency !== '' &&
+             !error;
     }
   };
 
   const handleSave = () => {
     if (!isFormValid()) return;
 
+    // Check for duplicates before saving
+    if (!checkDuplicates()) {
+      return;
+    }
+
     const allocation = {
       id: mode === 'edit' && initialData ? initialData.id : Math.random(),
+      name: formData.name, // Include name for subcategories
       category: formData.category,
       amount: parseFloat(formData.amount),
       frequency: formData.frequency,
@@ -126,6 +194,7 @@ export default function AllocationSidePanel({
       endDate: '',
       status: 'Active',
     });
+    setError('');
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -219,10 +288,67 @@ export default function AllocationSidePanel({
           </button>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div
+            style={{
+              padding: '1rem',
+              backgroundColor: '#3d1a1a',
+              borderLeft: '4px solid #FF4444',
+              color: '#FF8888',
+              fontSize: '0.9rem',
+              margin: '1rem 1.5rem 0',
+              borderRadius: '4px',
+            }}
+          >
+            {error}
+          </div>
+        )}
+
         {/* Form */}
         <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem' }}>
           {panelType === 'subcategory' && (
             <>
+              {/* Category Selector for Subcategory */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label
+                  htmlFor="category"
+                  style={{
+                    display: 'block',
+                    color: '#fff',
+                    marginBottom: '0.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '500',
+                  }}
+                >
+                  Category *
+                </label>
+                <select
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    backgroundColor: '#1a1a1a',
+                    border: '1px solid #333',
+                    borderRadius: '4px',
+                    color: '#fff',
+                    fontSize: '0.95rem',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="">Select a category</option>
+                  {allAllocations.map((allocation) => (
+                    <option key={allocation.id} value={allocation.category}>
+                      {allocation.category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Subcategory Name */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <label
