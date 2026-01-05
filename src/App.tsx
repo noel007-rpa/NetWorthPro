@@ -1,13 +1,13 @@
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard.js';
+import Dashboard from './pages/Dashboard';
 import CashFlow from './pages/CashFlow';
 import Income from './pages/Income';
 
 function App() {
   return (
-    <Router basename="/NetWorthPro/">
+    <Router basename="/NetWorthPro">
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting...</title>
+    <script>
+      const repo = "/NetWorthPro";
+      const path = window.location.pathname.replace(repo, "").replace(/\/$/, "");
+      const redirect = path ? "/?redirect=" + encodeURIComponent(path) : "/";
+      window.location.replace(repo + redirect);
+    </script>
+  </head>
+  <body></body>
+</html>
