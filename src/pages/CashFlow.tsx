@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import KPICard from '../components/KPICard';
 import IncomeSidePanel from '../components/IncomeSidePanel';
@@ -34,6 +34,113 @@ interface Allocation {
   editingSubcategoryId?: number;
 }
 
+const DEFAULT_INCOME_DATA: Income[] = [
+  { id: 1, name: 'Salary', type: 'Employment', value: 80000, change: 0, changePercent: 0, lastUpdated: '2025-12-30', status: 'Active' },
+  { id: 2, name: 'Bonus', type: 'Employment', value: 15000, change: 0, changePercent: 0, lastUpdated: '2025-12-30', status: 'Active' },
+  { id: 3, name: 'Investment Returns', type: 'Investment', value: 35000, change: 5000, changePercent: 16.7, lastUpdated: '2025-12-29', status: 'Active' },
+  { id: 4, name: 'Rental Income', type: 'Property', value: 20000, change: 0, changePercent: 0, lastUpdated: '2025-12-15', status: 'Active' },
+];
+
+const DEFAULT_ALLOCATION_DATA: Allocation[] = [
+  { 
+    id: 1, 
+    category: 'Living', 
+    amount: 46000, 
+    frequency: 'Monthly', 
+    startDate: '2025-01-01', 
+    endDate: null, 
+    status: 'Active',
+    subcategories: [
+      { id: 1.1, name: 'Housing', amount: 20000, status: 'Active' },
+      { id: 1.2, name: 'Utilities', amount: 3000, status: 'Active' },
+      { id: 1.3, name: 'Food', amount: 8000, status: 'Active' },
+      { id: 1.4, name: 'Transport', amount: 10000, status: 'Active' },
+      { id: 1.5, name: 'Education (core)', amount: 5000, status: 'Active' },
+    ]
+  },
+  { 
+    id: 2, 
+    category: 'Savings', 
+    amount: 40000, 
+    frequency: 'Monthly', 
+    startDate: '2025-01-01', 
+    endDate: null, 
+    status: 'Active',
+    subcategories: [
+      { id: 2.1, name: 'Emergency Fund', amount: 20000, status: 'Active' },
+      { id: 2.2, name: 'Goal Savings', amount: 20000, status: 'Active' },
+    ]
+  },
+  { 
+    id: 3, 
+    category: 'Investments', 
+    amount: 15000, 
+    frequency: 'Monthly', 
+    startDate: '2025-01-01', 
+    endDate: null, 
+    status: 'Active',
+    subcategories: [
+      { id: 3.1, name: 'Stocks', amount: 8000, status: 'Active' },
+      { id: 3.2, name: 'Bonds', amount: 4000, status: 'Active' },
+      { id: 3.3, name: 'Real Estate', amount: 3000, status: 'Active' },
+    ]
+  },
+  { 
+    id: 4, 
+    category: 'Debt', 
+    amount: 5000, 
+    frequency: 'Monthly', 
+    startDate: '2025-01-01', 
+    endDate: null, 
+    status: 'Active',
+    subcategories: [
+      { id: 4.1, name: 'Credit Card', amount: 2000, status: 'Active' },
+      { id: 4.2, name: 'Student Loan', amount: 2000, status: 'Active' },
+      { id: 4.3, name: 'Personal Loan', amount: 1000, status: 'Active' },
+    ]
+  },
+  { 
+    id: 5, 
+    category: 'Protection', 
+    amount: 2000, 
+    frequency: 'Monthly', 
+    startDate: '2025-01-01', 
+    endDate: null, 
+    status: 'Active',
+    subcategories: [
+      { id: 5.1, name: 'Insurance', amount: 1500, status: 'Active' },
+      { id: 5.2, name: 'Medical', amount: 500, status: 'Active' },
+    ]
+  },
+  { 
+    id: 6, 
+    category: 'Support / Giving', 
+    amount: 3000, 
+    frequency: 'Monthly', 
+    startDate: '2025-01-01', 
+    endDate: null, 
+    status: 'Active',
+    subcategories: [
+      { id: 6.1, name: 'Charity', amount: 1500, status: 'Active' },
+      { id: 6.2, name: 'Family Support', amount: 1500, status: 'Active' },
+    ]
+  },
+  { 
+    id: 7, 
+    category: 'Taxes', 
+    amount: 4000, 
+    frequency: 'Monthly', 
+    startDate: '2025-01-01', 
+    endDate: null, 
+    status: 'Paused',
+    subcategories: [
+      { id: 7.1, name: 'Income Tax', amount: 2500, status: 'Active' },
+      { id: 7.2, name: 'Property Tax', amount: 1000, status: 'Active' },
+      { id: 7.3, name: 'Other Taxes', amount: 500, status: 'Active' },
+    ]
+  },
+];
+
 export default function CashFlow() {
   const navigate = useNavigate();
   const [totalDistribution] = useState(120000);
@@ -48,112 +155,23 @@ export default function CashFlow() {
   const [selectedCategoryForSubcategory, setSelectedCategoryForSubcategory] = useState<string>('');
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: number; name: string; type?: 'income' | 'allocation' | 'subcategory'; parentId?: number } | null>(null);
   
-  const [incomeData, setIncomeData] = useState([
-    { id: 1, name: 'Salary', type: 'Employment', value: 80000, change: 0, changePercent: 0, lastUpdated: '2025-12-30', status: 'Active' },
-    { id: 2, name: 'Bonus', type: 'Employment', value: 15000, change: 0, changePercent: 0, lastUpdated: '2025-12-30', status: 'Active' },
-    { id: 3, name: 'Investment Returns', type: 'Investment', value: 35000, change: 5000, changePercent: 16.7, lastUpdated: '2025-12-29', status: 'Active' },
-    { id: 4, name: 'Rental Income', type: 'Property', value: 20000, change: 0, changePercent: 0, lastUpdated: '2025-12-15', status: 'Active' },
-  ]);
+  const [incomeData, setIncomeData] = useState<Income[]>(() => {
+    try {
+      const saved = localStorage.getItem('incomeData');
+      return saved ? JSON.parse(saved) : DEFAULT_INCOME_DATA;
+    } catch {
+      return DEFAULT_INCOME_DATA;
+    }
+  });
 
-  const [allocationData, setAllocationData] = useState([
-    { 
-      id: 1, 
-      category: 'Living', 
-      amount: 46000, 
-      frequency: 'Monthly', 
-      startDate: '2025-01-01', 
-      endDate: null, 
-      status: 'Active',
-      subcategories: [
-        { id: 1.1, name: 'Housing', amount: 20000, status: 'Active' },
-        { id: 1.2, name: 'Utilities', amount: 3000, status: 'Active' },
-        { id: 1.3, name: 'Food', amount: 8000, status: 'Active' },
-        { id: 1.4, name: 'Transport', amount: 10000, status: 'Active' },
-        { id: 1.5, name: 'Education (core)', amount: 5000, status: 'Active' },
-      ]
-    },
-    { 
-      id: 2, 
-      category: 'Savings', 
-      amount: 40000, 
-      frequency: 'Monthly', 
-      startDate: '2025-01-01', 
-      endDate: null, 
-      status: 'Active',
-      subcategories: [
-        { id: 2.1, name: 'Emergency Fund', amount: 20000, status: 'Active' },
-        { id: 2.2, name: 'Goal Savings', amount: 20000, status: 'Active' },
-      ]
-    },
-    { 
-      id: 3, 
-      category: 'Investments', 
-      amount: 15000, 
-      frequency: 'Monthly', 
-      startDate: '2025-01-01', 
-      endDate: null, 
-      status: 'Active',
-      subcategories: [
-        { id: 3.1, name: 'Stocks', amount: 8000, status: 'Active' },
-        { id: 3.2, name: 'Bonds', amount: 4000, status: 'Active' },
-        { id: 3.3, name: 'Real Estate', amount: 3000, status: 'Active' },
-      ]
-    },
-    { 
-      id: 4, 
-      category: 'Debt', 
-      amount: 5000, 
-      frequency: 'Monthly', 
-      startDate: '2025-01-01', 
-      endDate: null, 
-      status: 'Active',
-      subcategories: [
-        { id: 4.1, name: 'Credit Card', amount: 2000, status: 'Active' },
-        { id: 4.2, name: 'Student Loan', amount: 2000, status: 'Active' },
-        { id: 4.3, name: 'Personal Loan', amount: 1000, status: 'Active' },
-      ]
-    },
-    { 
-      id: 5, 
-      category: 'Protection', 
-      amount: 2000, 
-      frequency: 'Monthly', 
-      startDate: '2025-01-01', 
-      endDate: null, 
-      status: 'Active',
-      subcategories: [
-        { id: 5.1, name: 'Insurance', amount: 1500, status: 'Active' },
-        { id: 5.2, name: 'Medical', amount: 500, status: 'Active' },
-      ]
-    },
-    { 
-      id: 6, 
-      category: 'Support / Giving', 
-      amount: 3000, 
-      frequency: 'Monthly', 
-      startDate: '2025-01-01', 
-      endDate: null, 
-      status: 'Active',
-      subcategories: [
-        { id: 6.1, name: 'Charity', amount: 1500, status: 'Active' },
-        { id: 6.2, name: 'Family Support', amount: 1500, status: 'Active' },
-      ]
-    },
-    { 
-      id: 7, 
-      category: 'Taxes', 
-      amount: 4000, 
-      frequency: 'Monthly', 
-      startDate: '2025-01-01', 
-      endDate: null, 
-      status: 'Paused',
-      subcategories: [
-        { id: 7.1, name: 'Income Tax', amount: 2500, status: 'Active' },
-        { id: 7.2, name: 'Property Tax', amount: 1000, status: 'Active' },
-        { id: 7.3, name: 'Other Taxes', amount: 500, status: 'Active' },
-      ]
-    },
-  ]);
+  const [allocationData, setAllocationData] = useState<Allocation[]>(() => {
+    try {
+      const saved = localStorage.getItem('allocationData');
+      return saved ? JSON.parse(saved) : DEFAULT_ALLOCATION_DATA;
+    } catch {
+      return DEFAULT_ALLOCATION_DATA;
+    }
+  });
 
   const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({ 1: true, 2: true, 3: false, 4: false, 5: false, 6: false, 7: false });
   const [incomeSort, setIncomeSort] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
@@ -174,6 +192,15 @@ export default function CashFlow() {
     endDate: 140,
     status: 100,
   });
+
+  // Save to localStorage whenever data changes
+  useEffect(() => {
+    localStorage.setItem('incomeData', JSON.stringify(incomeData));
+  }, [incomeData]);
+
+  useEffect(() => {
+    localStorage.setItem('allocationData', JSON.stringify(allocationData));
+  }, [allocationData]);
 
   // Calculate total income from income data
   const totalIncome = incomeData.reduce((sum, item) => sum + item.value, 0);
